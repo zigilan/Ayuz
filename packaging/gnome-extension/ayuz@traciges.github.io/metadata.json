@@ -1,0 +1,9 @@
+{
+  "uuid": "ayuz@traciges.github.io",
+  "name": "Ayuz OLED Care",
+  "description": "OLED care helpers for Ayuz: top bar pixel shift, auto-hide and transparency, and dimming of inactive windows. Controlled from the Ayuz app.",
+  "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
+  "settings-schema": "org.gnome.shell.extensions.ayuz",
+  "url": "https://github.com/Traciges/Ayuz",
+  "version": 1
+}

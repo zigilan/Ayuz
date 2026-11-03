@@ -19,6 +19,8 @@ use std::process::Command;
 
 use crate::components::audio::{SoundModesModel, SoundModesMsg, VolumeModel};
 use crate::components::display::ColorGamutModel;
+use crate::components::display::RefreshRateModel;
+use crate::components::display::refresh_rate::RefreshRateMsg;
 use crate::components::display::OledCareModel;
 use crate::components::display::OledDimmingModel;
 use crate::components::display::TargetModeModel;
@@ -139,6 +141,7 @@ pub struct AppModel {
     target_mode: Controller<TargetModeModel>,
     oled_care: Controller<OledCareModel>,
     color_gamut: Controller<ColorGamutModel>,
+    refresh_rate: Controller<RefreshRateModel>,
     aura: Controller<AuraPageModel>,
     animatrix: Controller<AnimatrixModel>,
     fn_key: Controller<FnKeyModel>,
@@ -164,10 +167,13 @@ impl AppModel {
         self.oled_dimming.sender().emit(OledDimmingMsg::LoadProfile(p.oled_dc_dimming));
         self.target_mode.sender().emit(TargetModeMsg::LoadProfile(p.target_mode_active));
         self.color_gamut.sender().emit(ColorGamutMsg::LoadProfile(p.color_profile_index));
+        self.refresh_rate.sender().emit(RefreshRateMsg::LoadProfile(p.display_refresh_rate));
         self.oled_care.sender().emit(OledCareMsg::LoadProfile {
             pixel_refresh: p.oled_care_pixel_refresh,
             panel_autohide: p.oled_care_panel_autohide,
             transparency: p.oled_care_transparency,
+            pixel_shift: p.oled_care_pixel_shift,
+            pixel_shift_interval: p.oled_care_pixel_shift_interval,
         });
 
         // Audio
@@ -351,6 +357,7 @@ impl SimpleComponent for AppModel {
         let target_mode = launch_component!(TargetModeModel, sender);
         let oled_care = launch_component!(OledCareModel, sender);
         let color_gamut = launch_component!(ColorGamutModel, sender);
+        let refresh_rate = launch_component!(RefreshRateModel, sender);
         let aura = launch_component!(AuraPageModel, sender);
         let animatrix = launch_component!(AnimatrixModel, sender);
         let fn_key = launch_component!(FnKeyModel, sender);
@@ -434,6 +441,7 @@ impl SimpleComponent for AppModel {
             target_mode,
             oled_care,
             color_gamut,
+            refresh_rate,
             aura,
             animatrix,
             fn_key,
@@ -456,6 +464,7 @@ impl SimpleComponent for AppModel {
         let target_mode_widget = model.target_mode.widget();
         let oled_care_widget = model.oled_care.widget();
         let color_gamut_widget = model.color_gamut.widget();
+        let refresh_rate_widget = model.refresh_rate.widget();
         let aura_widget = model.aura.widget();
         let animatrix_widget = model.animatrix.widget();
         let fn_key_widget = model.fn_key.widget();
@@ -475,6 +484,7 @@ impl SimpleComponent for AppModel {
         display_page.add(target_mode_widget);
         display_page.add(oled_care_widget);
         display_page.add(color_gamut_widget);
+        display_page.add(refresh_rate_widget);
 
         // Aura page hosts a Box of dynamic per-device PreferencesGroups
         // (built by AuraPageModel). PreferencesPage can't host non-PreferencesGroup
@@ -551,6 +561,10 @@ impl SimpleComponent for AppModel {
             (
                 "color_gamut",
                 color_gamut_widget.clone().upcast::<gtk4::Widget>(),
+            ),
+            (
+                "refresh_rate",
+                refresh_rate_widget.clone().upcast::<gtk4::Widget>(),
             ),
             ("aura", aura_widget.clone().upcast::<gtk4::Widget>()),
             ("animatrix", animatrix_widget.clone().upcast::<gtk4::Widget>()),

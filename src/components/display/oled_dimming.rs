@@ -22,13 +22,14 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use crate::components::display::helpers::DISPLAY_NAME;
-use crate::services::commands::{is_kde_desktop, run_command_blocking};
+use crate::services::commands::{is_gnome_desktop, is_kde_desktop, run_command_blocking};
 use crate::services::config::AppConfig;
 use crate::services::kde_brightness::BrightnessControlProxy;
 
 pub struct OledDimmingModel {
     brightness: u32,
-    kde_available: bool,
+    /// KDE (`kscreen-doctor` dimming) or GNOME 49+ (`gdctl` luminance).
+    supported: bool,
     debounce_task: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -60,8 +61,8 @@ impl Component for OledDimmingModel {
             #[template]
             add = &crate::components::widgets::DaemonWarningLabel {
                 #[watch]
-                set_visible: !model.kde_available,
-                set_label: &t!("kde_required_warning"),
+                set_visible: !model.supported,
+                set_label: &t!("kde_or_gnome_required_warning"),
             },
 
             #[template]
@@ -73,7 +74,7 @@ impl Component for OledDimmingModel {
                 set_title: &t!("oled_dimming_slider_title"),
 
                 #[watch]
-                set_sensitive: model.kde_available,
+                set_sensitive: model.supported,
 
                 add_suffix = &gtk::Scale {
                     set_orientation: gtk::Orientation::Horizontal,
@@ -107,12 +108,12 @@ impl Component for OledDimmingModel {
 
         let model = OledDimmingModel {
             brightness,
-            kde_available: is_kde_desktop(),
+            supported: is_kde_desktop() || is_gnome_desktop(),
             debounce_task: None,
         };
         let widgets = view_output!();
 
-        if brightness < 100 {
+        if model.supported && brightness < 100 {
             sender.command(move |out, shutdown| {
                 shutdown
                     .register(async move {
@@ -152,7 +153,7 @@ impl Component for OledDimmingModel {
                 });
             }
             OledDimmingMsg::LoadProfile(value) => {
-                if !self.kde_available {
+                if !self.supported {
                     return;
                 }
                 self.brightness = value;
@@ -205,6 +206,17 @@ impl Component for OledDimmingModel {
 }
 
 async fn apply_dimming(value: u32) -> Result<(), String> {
+    if is_gnome_desktop() {
+        // Mutter's luminance dims in the compositor, like KDE's dimming, so the panel
+        // keeps its flicker-free hardware brightness.
+        let luminance = value.to_string();
+        let args: Vec<&str> = if value >= 100 {
+            vec!["pref", "-M", DISPLAY_NAME, "--reset-luminance"]
+        } else {
+            vec!["pref", "-M", DISPLAY_NAME, "--luminance", &luminance]
+        };
+        return run_command_blocking("gdctl", &args).await;
+    }
     let arg = format!("output.{}.dimming.{}", DISPLAY_NAME, value);
     run_command_blocking("kscreen-doctor", &[&arg]).await
 }

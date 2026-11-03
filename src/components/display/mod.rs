@@ -19,9 +19,11 @@ pub(crate) mod cosmic_panel;
 pub(crate) mod helpers;
 pub mod oled_care;
 pub mod oled_dimming;
+pub mod refresh_rate;
 pub mod target_mode;
 
 pub use color_gamut::ColorGamutModel;
 pub use oled_care::OledCareModel;
 pub use oled_dimming::OledDimmingModel;
+pub use refresh_rate::RefreshRateModel;
 pub use target_mode::TargetModeModel;

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses/.
 
+pub mod colord;
 pub mod commands;
 pub mod config;
 pub mod dbus;
@@ -21,10 +22,14 @@ pub mod dbus_animatrix;
 pub mod edge_gestures;
 pub(crate) mod evdev_runner;
 pub mod fan_hotkey;
+pub mod gnome_ext;
 pub mod kde_brightness;
 pub mod migration;
+pub mod mutter_display;
 pub mod numberpad;
 pub mod numberpad_layouts;
 pub mod numberpad_pointer;
+pub mod pixel_shift;
+pub mod refresh_rate;
 pub mod touchpad_ctl;
 pub mod typing_watch;

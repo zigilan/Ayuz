@@ -109,7 +109,21 @@ static SEARCH_INDEX: &[SearchItem] = &[
         component_key: "target_mode",
     },
     SearchItem {
+        title_key: "refresh_rate_title",
+        page_icon: "video-display-symbolic",
+        page_title_key: "tab_display",
+        page_name: "display",
+        component_key: "refresh_rate",
+    },
+    SearchItem {
         title_key: "oled_care_pixel_refresh_title",
+        page_icon: "video-display-symbolic",
+        page_title_key: "tab_display",
+        page_name: "display",
+        component_key: "oled_care",
+    },
+    SearchItem {
+        title_key: "oled_care_pixel_shift_title",
         page_icon: "video-display-symbolic",
         page_title_key: "tab_display",
         page_name: "display",

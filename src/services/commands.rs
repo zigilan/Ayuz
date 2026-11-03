@@ -45,6 +45,35 @@ pub(crate) async fn run_command_blocking(program: &str, args: &[&str]) -> Result
     }
 }
 
+/// Runs a program with arguments on a blocking thread and returns its stdout as text.
+///
+/// Returns `Err` on spawn failure, non-zero exit code, or if the blocking task panics.
+pub(crate) async fn run_command_stdout(program: &str, args: &[&str]) -> Result<String, String> {
+    let program_name = program.to_string();
+    let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+
+    let result = tokio::task::spawn_blocking(move || {
+        std::process::Command::new(&program_name)
+            .args(&args)
+            .output()
+    })
+    .await;
+
+    match result {
+        Ok(Ok(out)) if out.status.success() => {
+            Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+        }
+        Ok(Ok(out)) => Err(t!(
+            "error_cmd_exit_code",
+            cmd = program,
+            code = out.status.code().unwrap_or(-1).to_string()
+        )
+        .to_string()),
+        Ok(Err(e)) => Err(t!("error_cmd_start", cmd = program, error = e.to_string()).to_string()),
+        Err(e) => Err(t!("error_spawn_blocking", error = e.to_string()).to_string()),
+    }
+}
+
 /// Reads a privileged file using `pkexec cat <path>` and returns its trimmed contents.
 ///
 /// Accepts only `&'static str` paths to prevent dynamic injection.

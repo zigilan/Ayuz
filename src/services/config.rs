@@ -68,6 +68,9 @@ fn default_true() -> bool {
 fn default_typing_delay_ms() -> u32 {
     1000
 }
+fn default_pixel_shift_interval() -> u32 {
+    super::pixel_shift::DEFAULT_INTERVAL_IDX
+}
 
 fn generate_profile_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -90,9 +93,17 @@ pub struct Profile {
     pub oled_dc_dimming: u32,
     pub target_mode_active: bool,
     pub color_profile_index: u32,
+    /// Whole-Hz refresh rate of the built-in display; 0 leaves it untouched.
+    #[serde(default)]
+    pub display_refresh_rate: u32,
     pub oled_care_pixel_refresh: bool,
     pub oled_care_panel_autohide: bool,
     pub oled_care_transparency: bool,
+    #[serde(default)]
+    pub oled_care_pixel_shift: bool,
+    /// Index into `pixel_shift::INTERVALS_SECS`.
+    #[serde(default = "default_pixel_shift_interval")]
+    pub oled_care_pixel_shift_interval: u32,
 
     // Audio
     pub audio_profile: u32,
@@ -184,9 +195,12 @@ impl Default for Profile {
             oled_dc_dimming: 100,
             target_mode_active: false,
             color_profile_index: 0,
+            display_refresh_rate: 0,
             oled_care_pixel_refresh: false,
             oled_care_panel_autohide: false,
             oled_care_transparency: false,
+            oled_care_pixel_shift: false,
+            oled_care_pixel_shift_interval: default_pixel_shift_interval(),
             audio_profile: 0,
             volume: 100.0,
             kbd_timeout_mode: 0,

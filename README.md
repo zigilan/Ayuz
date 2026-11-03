@@ -69,12 +69,18 @@ The application is smart about availability: if a required tool or desktop envir
 
 | Feature                   | Description                                                                                                       | Requires                      |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| OLED Flicker-Free Dimming | Reduces OLED panel flickering at low brightness levels using a 10-100% slider                                     | KDE, `kscreen-doctor`         |
-| Color Gamut               | Switch between Native, sRGB, DCI-P3, and Display P3 color profiles - bundled ICC files sourced directly from ASUS | KDE, `kscreen-doctor`         |
-| Target Mode               | Dims unfocused windows using the KWin `diminactive` compositor effect                                             | KDE, `qdbus`, `kwriteconfig6` |
-| OLED Pixel Refresh        | Activates a pixel refresh screensaver after inactivity to reduce burn-in risk                                     | KDE, `kwriteconfig6`          |
-| Panel Auto-Hide           | Automatically hides the KDE panel to reduce static OLED elements                                                  | KDE, `qdbus`                  |
-| Panel Transparency        | Sets the KDE panel to transparent or opaque                                                                       | KDE, `qdbus`                  |
+| Feature                   | Description                                                                                                       | KDE                           | GNOME                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------ |
+| OLED Flicker-Free Dimming | Reduces OLED panel flickering at low brightness levels using a 10-100% slider                                     | `kscreen-doctor`              | GNOME 49+, `gdctl` luminance   |
+| Color Gamut               | Switch between Native, sRGB, DCI-P3, and Display P3 color profiles - bundled ICC files sourced directly from ASUS | `kscreen-doctor`              | GNOME 49+, colord (`colormgr`) |
+| Target Mode               | Dims unfocused windows                                                                                            | `qdbus`, `kwriteconfig6`      | Ayuz Shell extension           |
+| OLED Pixel Refresh        | Activates a pixel refresh screensaver after inactivity to reduce burn-in risk                                     | `kwriteconfig6`               | `gsettings`                    |
+| Refresh Rate              | Switch the built-in display between its supported refresh rates at the current resolution                         | `kscreen-doctor`              | Mutter D-Bus                   |
+| Pixel Shift               | Moves the panel by 1 px along the ASUS OLED Shifter orbit at a configurable interval (60-600 s)                   | `qdbus` (panel edge)          | Ayuz Shell extension (top bar) |
+| Panel Auto-Hide           | Automatically hides the panel / top bar to reduce static OLED elements                                            | `qdbus` (also COSMIC)         | Ayuz Shell extension           |
+| Panel Transparency        | Sets the panel / top bar to transparent or opaque                                                                 | `qdbus` (also COSMIC)         | Ayuz Shell extension           |
+
+> **Ayuz GNOME Shell extension:** On GNOME, Target Mode, Pixel Shift, Panel Auto-Hide and Panel Transparency are provided by a small extension bundled with Ayuz ([`packaging/gnome-extension`](packaging/gnome-extension)). Ayuz copies it to `~/.local/share/gnome-shell/extensions/ayuz@traciges.github.io/`, compiles its schema (`glib-compile-schemas`) and enables it the first time one of these options is switched on. On Wayland, GNOME Shell only loads a newly installed extension after you log out and back in once.
 
 > **Bundled color gamut presets:** Native, sRGB, DCI-P3 and Display P3 <br>
 > These presets are the original ASUS color gamut profiles.

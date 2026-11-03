@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.ayuz" path="/org/gnome/shell/extensions/ayuz/">
+    <key name="pixel-shift" type="b">
+      <default>false</default>
+      <summary>Shift the top bar by one pixel along the ASUS OLED Shifter orbit</summary>
+    </key>
+    <key name="pixel-shift-interval" type="u">
+      <range min="10" max="3600"/>
+      <default>200</default>
+      <summary>Seconds between two pixel-shift steps</summary>
+    </key>
+    <key name="panel-autohide" type="b">
+      <default>false</default>
+      <summary>Hide the top bar until the pointer reaches the top screen edge</summary>
+    </key>
+    <key name="panel-transparent" type="b">
+      <default>false</default>
+      <summary>Draw the top bar without background</summary>
+    </key>
+    <key name="dim-inactive" type="b">
+      <default>false</default>
+      <summary>Darken all windows except the focused one</summary>
+    </key>
+    <key name="dim-level" type="d">
+      <range min="0.0" max="0.9"/>
+      <default>0.3</default>
+      <summary>How much inactive windows are darkened (0 = not at all)</summary>
+    </key>
+  </schema>
+</schemalist>

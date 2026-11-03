@@ -22,8 +22,10 @@ use relm4::adw::prelude::*;
 use relm4::prelude::*;
 use rust_i18n::t;
 
-use super::helpers::{apply_icm_profile, reset_icm_profile, setup_icm_profiles};
-use crate::services::{commands::is_kde_desktop, config::AppConfig};
+use super::helpers::{DISPLAY_NAME, apply_icm_profile, reset_icm_profile, setup_icm_profiles};
+use crate::services::colord;
+use crate::services::commands::{is_gnome_desktop, is_kde_desktop};
+use crate::services::config::AppConfig;
 
 fn filename_for_index(index: u32) -> Option<&'static str> {
     match index {
@@ -37,7 +39,8 @@ fn filename_for_index(index: u32) -> Option<&'static str> {
 pub struct ColorGamutModel {
     color_gamut_index: u32,
     icm_base_path: Option<PathBuf>,
-    kde_available: bool,
+    /// KDE (`kscreen-doctor`) or GNOME 49+ (colord, applied by Mutter).
+    supported: bool,
 }
 
 impl ColorGamutModel {
@@ -79,15 +82,15 @@ impl Component for ColorGamutModel {
             #[template]
             add = &crate::components::widgets::DaemonWarningLabel {
                 #[watch]
-                set_visible: !model.kde_available,
-                set_label: &t!("kde_required_warning"),
+                set_visible: !model.supported,
+                set_label: &t!("kde_or_gnome_required_warning"),
             },
 
             add = &adw::ComboRow {
                 set_title: &t!("color_gamut_title"),
                 
                 #[watch]
-                set_sensitive: model.kde_available,
+                set_sensitive: model.supported,
                 
                 #[watch]
                 set_subtitle: &model.color_gamut_description(),
@@ -114,7 +117,7 @@ impl Component for ColorGamutModel {
         let model = ColorGamutModel {
             color_gamut_index: config.active_profile().color_profile_index,
             icm_base_path: None,
-            kde_available: is_kde_desktop(),
+            supported: is_kde_desktop() || is_gnome_desktop(),
         };
 
         let widgets = view_output!();
@@ -149,7 +152,7 @@ impl Component for ColorGamutModel {
                 }
             }
             ColorGamutMsg::LoadProfile(index) => {
-                if !self.kde_available {
+                if !self.supported {
                     return;
                 }
                 self.color_gamut_index = index;
@@ -194,9 +197,22 @@ fn apply_profile(index: u32, base: PathBuf, sender: &ComponentSender<ColorGamutM
     sender.command(move |out, shutdown| {
         shutdown
             .register(async move {
-                let result = match filename_for_index(index) {
-                    None => reset_icm_profile().await,
-                    Some(filename) => apply_icm_profile(filename, &base).await,
+                let result = if is_gnome_desktop() {
+                    match filename_for_index(index) {
+                        None => {
+                            let ours: Vec<PathBuf> =
+                                (1..=3).filter_map(filename_for_index).map(|f| base.join(f)).collect();
+                            colord::remove_profiles(DISPLAY_NAME, &ours).await
+                        }
+                        Some(filename) => {
+                            colord::apply_profile(DISPLAY_NAME, &base.join(filename)).await
+                        }
+                    }
+                } else {
+                    match filename_for_index(index) {
+                        None => reset_icm_profile().await,
+                        Some(filename) => apply_icm_profile(filename, &base).await,
+                    }
                 };
                 match result {
                     Ok(()) => out.emit(ColorGamutCommandOutput::ProfileApplied(index)),

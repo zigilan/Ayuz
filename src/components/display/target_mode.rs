@@ -20,12 +20,14 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use super::helpers::run_qdbus;
-use crate::services::commands::{is_kde_desktop, run_command_blocking};
+use crate::services::commands::{is_gnome_desktop, is_kde_desktop, run_command_blocking};
 use crate::services::config::AppConfig;
+use crate::services::gnome_ext;
 
 pub struct TargetModeModel {
     active: bool,
     kde_available: bool,
+    gnome_available: bool,
 }
 
 #[derive(Debug)]
@@ -56,8 +58,14 @@ impl Component for TargetModeModel {
             #[template]
             add = &crate::components::widgets::DaemonWarningLabel {
                 #[watch]
-                set_visible: !model.kde_available,
-                set_label: &t!("kde_required_warning"),
+                set_visible: !model.kde_available && !model.gnome_available,
+                set_label: &t!("kde_or_gnome_required_warning"),
+            },
+
+            #[template]
+            add = &crate::components::widgets::DaemonWarningLabel {
+                set_visible: model.gnome_available,
+                set_label: &t!("gnome_extension_notice"),
             },
 
             add = &adw::SwitchRow {
@@ -67,7 +75,7 @@ impl Component for TargetModeModel {
                 #[watch]
                 set_active: model.active,
                 #[watch]
-                set_sensitive: model.kde_available,
+                set_sensitive: model.kde_available || model.gnome_available,
 
                 connect_active_notify[sender] => move |switch| {
                     sender.input(TargetModeMsg::SetActive(switch.is_active()));
@@ -84,11 +92,28 @@ impl Component for TargetModeModel {
         let config = AppConfig::load();
         let kde_available = is_kde_desktop();
 
+        let gnome_available = is_gnome_desktop();
+
         let model = TargetModeModel {
             active: config.active_profile().target_mode_active,
             kde_available,
+            gnome_available,
         };
         let widgets = view_output!();
+
+        if gnome_available && model.active {
+            // Re-apply after an update of the bundled extension or a fresh install.
+            sender.command(|out, shutdown| {
+                shutdown
+                    .register(async move {
+                        match set_effect(true).await {
+                            Ok(()) => out.emit(TargetModeCommandOutput::ActiveSet(true)),
+                            Err(e) => out.emit(TargetModeCommandOutput::Error(e)),
+                        }
+                    })
+                    .drop_on_shutdown()
+            });
+        }
 
         if kde_available {
             let fallback = config.active_profile().target_mode_active;
@@ -123,7 +148,7 @@ impl Component for TargetModeModel {
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {
-                            match set_kwin_effect(active).await {
+                            match set_effect(active).await {
                                 Ok(()) => out.emit(TargetModeCommandOutput::ActiveSet(active)),
                                 Err(e) => out.emit(TargetModeCommandOutput::Error(e)),
                             }
@@ -132,14 +157,14 @@ impl Component for TargetModeModel {
                 });
             }
             TargetModeMsg::LoadProfile(active) => {
-                if !self.kde_available {
+                if !self.kde_available && !self.gnome_available {
                     return;
                 }
                 self.active = active;
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {
-                            match set_kwin_effect(active).await {
+                            match set_effect(active).await {
                                 Ok(()) => out.emit(TargetModeCommandOutput::ActiveSet(active)),
                                 Err(e) => out.emit(TargetModeCommandOutput::Error(e)),
                             }
@@ -174,7 +199,12 @@ impl Component for TargetModeModel {
     }
 }
 
-async fn set_kwin_effect(active: bool) -> Result<(), String> {
+/// Dims inactive windows: KWin's `diminactive` effect on KDE, the bundled Shell
+/// extension on GNOME.
+async fn set_effect(active: bool) -> Result<(), String> {
+    if is_gnome_desktop() {
+        return gnome_ext::set_bool("dim-inactive", active).await;
+    }
     let value = if active { "true" } else { "false" };
     run_command_blocking(
         "kwriteconfig6",
